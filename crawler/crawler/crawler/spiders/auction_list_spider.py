@@ -5,8 +5,8 @@ class AuctionListSpider(scrapy.Spider):
     name = "auction_list"
 
     def start_requests(self):
-        for year in range(2007, 2018):
-            for month in range(1, 12):
+        for year in range(2007, 2020):
+            for month in range(1, 13):
                 yield self.request(year, month, 1)
 
     def parse(self, response):
@@ -30,4 +30,3 @@ class AuctionListSpider(scrapy.Spider):
         req = scrapy.Request(url + query_str, self.parse)
         req.date = [year, month, day]
         return req
-
