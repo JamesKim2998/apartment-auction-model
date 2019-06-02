@@ -11,6 +11,8 @@ class AuctionItemSpider(scrapy.Spider):
             item_db = json.load(json_file)
 
         for item_dict in item_db:
+            if not item_dict['date'].startswith('2017'):
+                continue
             for item in item_dict['items']:
                 if not os.path.exists(AuctionItemSpider.get_save_path(item)):
                     yield self.request(item)
