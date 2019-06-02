@@ -16,7 +16,7 @@ class AuctionListSpider(scrapy.Spider):
 
         year, month, day = response.request.date
         date_str = f'{year}-{month:02d}-{day:02d}'
-        yield {date_str: item_list}
+        yield {'date': date_str, 'items': item_list}
 
         if day != 31:
             new_day = day + 1
