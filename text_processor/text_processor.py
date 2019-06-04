@@ -311,10 +311,11 @@ if __name__ == '__main__':
         print(jsonpickle.encode(result, unpicklable=False))
         exit(0)
 
+    output = codecs.open('output.tsv', encoding='utf-8', mode='w')
+    output.write('파일이름\t' + '\t'.join(ItemInfo().__slots__) + '\n')
+
     for year in range(2012, 2020):
         year_str = str(year)
-        output = codecs.open(year_str + '.tsv', encoding='utf-8', mode='w')
-        output.write('파일이름\t' + '\t'.join(ItemInfo().__slots__) + '\n')
 
         root_dir = '/Users/jameskim/Develop/Personal/apartment-auction-model/dataset/ubat_' + year_str
         for _, _, filenames in os.walk(root_dir):
@@ -333,4 +334,4 @@ if __name__ == '__main__':
                     print('Parsing failed\n' + file_path)
                     print(e)
 
-        output.close()
+    output.close()
