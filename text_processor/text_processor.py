@@ -15,32 +15,35 @@ class NotCompletedItemException(Exception):
 
 class ItemInfo(object):
     __slots__ = [
-        '매각기일',
+        '매각기일_연', '매각기일_일',
         '소재지1', '소재지2', '소재지3', '층',
-        '건수', '최저가', '전용면적', '매각대상', '청구금액', '사건접수',
+        '건수', '최저가', '전용면적', '매각대상', '청구금액',
+        '사건접수_연', '사건접수_일',
         '유찰회수', '낙찰가',
         '감정평가_토지', '감정평가_건물',
         '임차인_보증금', '임차인_월세',
         '환경_토지경사', '환경_토지평탄', '환경_토지정방형', '환경_토지부정형',
         '환경_한강', '환경_용이', '환경_혼재', '환경_대중교통',
         '환경_단지', '환경_상가', '환경_학교', '환경_공원', '환경_공공시설', '환경_병원', '환경_종교',
-        '환경_농경지', '환경_승강기', '환경_경보기',
-        '지역분석',
+        '환경_농경지', '환경_군사', '환경_승강기', '환경_경보기',
+        # '지역분석',
     ]
 
     def to_tsv(self):
         attrs = [
-            self.매각기일,
+            self.매각기일_연, self.매각기일_일,
             self.소재지1, self.소재지2, self.소재지3, self.층,
-            self.건수, self.최저가, self.전용면적, self.매각대상, self.청구금액, self.사건접수,
+            self.건수, self.최저가, self.전용면적, self.매각대상, self.청구금액,
+            self.사건접수_연, self.사건접수_일,
             self.유찰회수, self.낙찰가,
             self.감정평가_토지, self.감정평가_건물,
             self.임차인_보증금, self.임차인_월세,
             self.환경_토지경사, self.환경_토지평탄, self.환경_토지정방형, self.환경_토지부정형,
             self.환경_한강, self.환경_용이, self.환경_혼재, self.환경_대중교통,
             self.환경_단지, self.환경_상가, self.환경_학교, self.환경_공원, self.환경_공공시설, self.환경_병원, self.환경_종교,
-            self.환경_농경지, self.환경_승강기, self.환경_경보기,
-            self.지역분석, ]
+            self.환경_농경지, self.환경_군사, self.환경_승강기, self.환경_경보기,
+            # self.지역분석,
+        ]
         attrs = list(map(lambda x: str(x), attrs))
         return '\t'.join(attrs)
 
@@ -55,12 +58,13 @@ class ItemInfo(object):
 대중교통_label = ['승강장', '정류장', '지하철', '전철', '역']
 단지_label = ['대규모', '단지', '근린']
 상가_label = ['근린', '상가', '점포']
-학교_label = ['학교', '고교', '교육']
+학교_label = ['학교', '고교', '교육', '유치원']
 공원_label = ['녹지', '공원']
 공공시설_label = ['관청', '법원', '검찰청', '문화', '주민', '센터', '청사']
 병원_label = ['병원']
 종교_label = ['성당', '교회']
-농경지_label = ['농경', '임야']
+농경지_label = ['농경', '임야', ' 답 ']
+군사_label = ['군사', '전술']
 승강기_label = ['승강기']
 경보기_label = ['경보기']
 
@@ -77,7 +81,10 @@ def parse_file(file_path: str) -> ItemInfo:
 
     # tables[0]
     table = tables[0]
-    result.매각기일 = table.xpath('tr/td/table/strong/tr/td[2]/b')[0].text.strip()[:10]
+    매각기일_text = table.xpath('tr/td/table/strong/tr/td[2]/b')[0].text.strip()[:10]
+    매각기일_tokens = 매각기일_text.split('-')
+    result.매각기일_연 = int(매각기일_tokens[0])
+    result.매각기일_일 = int(매각기일_tokens[1]) * 30 + int(매각기일_tokens[2])
 
     # tables[1]
     rows = tables[1].findall('tr')
@@ -154,7 +161,9 @@ def parse_file(file_path: str) -> ItemInfo:
         raise Exception('Undefined 매각대상: ' + str(매각대상_text))
     result.청구금액 = int(cols[5].text[:-1].replace(',', ''))
     cols = rows[5].findall('td')
-    result.사건접수 = cols[1].text
+    사건접수_tokens = cols[1].text.split('-')
+    result.사건접수_연 = int(사건접수_tokens[0])
+    result.사건접수_일 = int(사건접수_tokens[1]) * 30 + int(사건접수_tokens[2])
     # result.배당종기일 = cols[3].text
     # 개시결정 = cols[5].text  # 개시결정은 사건접수 다음날임.
 
@@ -199,7 +208,7 @@ def parse_file(file_path: str) -> ItemInfo:
             i += 1
 
         회차_매각기일 = cols[1].text
-        if 회차_매각기일 == result.매각기일:
+        if 회차_매각기일 == 매각기일_text:
             break
     if 회차_결과 == '취하' or 회차_결과 == '변경':
         raise NotCompletedItemException()
@@ -224,29 +233,30 @@ def parse_file(file_path: str) -> ItemInfo:
 
     # tables[3]: 지역분석
     tokens = tables[3].xpath('tr[1]/td[2]//text()')
-    result.지역분석 = ' '.join(tokens)
+    지역분석 = ' '.join(tokens)
 
     def check_label(text, label):
         return any(map(lambda x: x in text, label)) and 1 or 0
 
-    result.환경_토지경사 = check_label(result.지역분석, 토지경사_label)
-    result.환경_토지평탄 = check_label(result.지역분석, 토지평탄_label)
-    result.환경_토지정방형 = check_label(result.지역분석, 토지정방형_label)
-    result.환경_토지부정형 = check_label(result.지역분석, 토지부정형_label)
-    result.환경_한강 = check_label(result.지역분석, 한강_label)
-    result.환경_용이 = check_label(result.지역분석, 용이_label)
-    result.환경_혼재 = check_label(result.지역분석, 혼재_label)
-    result.환경_대중교통 = check_label(result.지역분석, 대중교통_label)
-    result.환경_단지 = check_label(result.지역분석, 단지_label)
-    result.환경_상가 = check_label(result.지역분석, 상가_label)
-    result.환경_학교 = check_label(result.지역분석, 학교_label)
-    result.환경_공원 = check_label(result.지역분석, 공원_label)
-    result.환경_공공시설 = check_label(result.지역분석, 공공시설_label)
-    result.환경_병원 = check_label(result.지역분석, 병원_label)
-    result.환경_종교 = check_label(result.지역분석, 종교_label)
-    result.환경_농경지 = check_label(result.지역분석, 농경지_label)
-    result.환경_승강기 = check_label(result.지역분석, 승강기_label)
-    result.환경_경보기 = check_label(result.지역분석, 경보기_label)
+    result.환경_토지경사 = check_label(지역분석, 토지경사_label)
+    result.환경_토지평탄 = check_label(지역분석, 토지평탄_label)
+    result.환경_토지정방형 = check_label(지역분석, 토지정방형_label)
+    result.환경_토지부정형 = check_label(지역분석, 토지부정형_label)
+    result.환경_한강 = check_label(지역분석, 한강_label)
+    result.환경_용이 = check_label(지역분석, 용이_label)
+    result.환경_혼재 = check_label(지역분석, 혼재_label)
+    result.환경_대중교통 = check_label(지역분석, 대중교통_label)
+    result.환경_단지 = check_label(지역분석, 단지_label)
+    result.환경_상가 = check_label(지역분석, 상가_label)
+    result.환경_학교 = check_label(지역분석, 학교_label)
+    result.환경_공원 = check_label(지역분석, 공원_label)
+    result.환경_공공시설 = check_label(지역분석, 공공시설_label)
+    result.환경_병원 = check_label(지역분석, 병원_label)
+    result.환경_종교 = check_label(지역분석, 종교_label)
+    result.환경_농경지 = check_label(지역분석, 농경지_label)
+    result.환경_군사 = check_label(지역분석, 군사_label)
+    result.환경_승강기 = check_label(지역분석, 승강기_label)
+    result.환경_경보기 = check_label(지역분석, 경보기_label)
 
     # tables[5]: 임차인현황
     rows = tables[5].findall('tr')
