@@ -11,14 +11,14 @@ class UbatItemSpider(scrapy.Spider):
             item_db = json.load(json_file)
 
         for item in item_db:
-            if item['event_no1'] != '2015':
+            if item['event_no1'] == '2015' or item['event_no1'] == '2016':
                 continue
             if not os.path.exists(UbatItemSpider.get_save_path(item)):
                 yield self.request(item)
 
     @classmethod
     def get_save_path(cls, item):
-        return f'items/{item["courtnum"]}_{item["event_no1"]}_{item["event_no2"]}_{item["obj_id"]}.html'
+        return f'{item["event_no1"]}/{item["courtnum"]}_{item["event_no1"]}_{item["event_no2"]}_{item["obj_id"]}.html'
 
     def parse(self, response, item):
         with open(UbatItemSpider.get_save_path(item), 'wb') as fp:
