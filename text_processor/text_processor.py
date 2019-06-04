@@ -93,7 +93,7 @@ def parse_file(file_path: str) -> ItemInfo:
     result.소재지1 = address_tokens[0]
     result.소재지2 = address_tokens[1]
     result.소재지3 = address_tokens[2]
-    result.층 = None
+    result.층 = 8  # TODO: 평균 층수를 넣어줘야한다.
     for address_token in address_tokens[3:]:
         if '조표' in address_token:
             continue
@@ -169,7 +169,7 @@ def parse_file(file_path: str) -> ItemInfo:
 
     # tables[2]: 기일현황
     result.유찰회수 = 0
-    result.낙찰가 = None
+    result.낙찰가 = '?'
     rows = tables[2].xpath('//table[@class="LineTable"]/tr')
     i = 1
     while i < len(rows):
