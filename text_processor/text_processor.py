@@ -59,7 +59,7 @@ class ItemInfo(object):
 단지_label = ['대규모', '단지', '근린']
 상가_label = ['근린', '상가', '점포']
 학교_label = ['학교', '고교', '교육', '유치원']
-공원_label = ['녹지', '공원']
+공원_label = ['공원']
 공공시설_label = ['관청', '법원', '검찰청', '문화', '주민', '센터', '청사']
 병원_label = ['병원']
 종교_label = ['성당', '교회']
@@ -91,9 +91,9 @@ def parse_file(file_path: str) -> ItemInfo:
     cols = rows[0].findall('td')
     address_tokens = cols[1].xpath('table/tr/td/b/font')[0].text.split('\r\n')[0].split()
     result.소재지1 = address_tokens[0]
-    result.소재지2 = address_tokens[1]
-    result.소재지3 = address_tokens[2]
-    result.층 = 8  # TODO: 평균 층수를 넣어줘야한다.
+    result.소재지2 = result.소재지1 + ' ' + address_tokens[1]
+    result.소재지3 = result.소재지2 + ' ' + address_tokens[2]
+    result.층 = '?'  # TODO: 평균 층수를 넣어줘야한다.
     for address_token in address_tokens[3:]:
         if '조표' in address_token:
             continue

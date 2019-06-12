@@ -28,15 +28,16 @@ column_names = [
     'env_scale', 'env_commerce', 'env_education', 'env_park', 'env_public_facility', 'env_hospital', 'env_religion',
     'env_farm', 'env_military', 'env_elevator', 'env_security', ]
 
-raw_dataset = pd.read_csv(dataset_path, names=column_names, sep="\t", skiprows=[0])
+raw_dataset = pd.read_csv(dataset_path, names=column_names, sep="\t", na_values="?", skiprows=[0])
 
 dataset = raw_dataset.copy()
 print(dataset.tail())
 
 dataset.pop('filename')
-dataset.pop('addr_1')
-dataset.pop('addr_2')
-dataset.pop('addr_3')
+dataset.pop('addr_1')  # Change this to Categorical vocabulary column
+dataset.pop('addr_2')  # Change this to Categorical vocabulary column
+dataset.pop('addr_3')  # Change this to Categorical vocabulary column
+dataset = dataset.dropna()
 train_dataset = dataset.sample(frac=0.8, random_state=0)
 test_dataset = dataset.drop(train_dataset.index)
 
@@ -73,3 +74,70 @@ def build_model():
 
 
 model = build_model()
+model.summary()
+
+example_batch = normed_train_data[:10]
+example_result = model.predict(example_batch)
+example_result
+
+
+# Display training progress by printing a single dot for each completed epoch
+class PrintDot(keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs):
+        if epoch % 100 == 0: print('')
+        print('.', end='')
+
+
+EPOCHS = 1000
+
+history = model.fit(
+    normed_train_data, train_labels,
+    epochs=EPOCHS, validation_split=0.2, verbose=0,
+    callbacks=[PrintDot()])
+
+hist = pd.DataFrame(history.history)
+hist['epoch'] = history.epoch
+print(hist.tail())
+
+
+def plot_history(history):
+    hist = pd.DataFrame(history.history)
+    hist['epoch'] = history.epoch
+
+    plt.figure()
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Abs Error [MPG]')
+    plt.plot(hist['epoch'], hist['mean_absolute_error'],
+             label='Train Error')
+    plt.plot(hist['epoch'], hist['val_mean_absolute_error'],
+             label='Val Error')
+    plt.ylim([0, 5])
+    plt.legend()
+
+    plt.figure()
+    plt.xlabel('Epoch')
+    plt.ylabel('Mean Square Error [$MPG^2$]')
+    plt.plot(hist['epoch'], hist['mean_squared_error'],
+             label='Train Error')
+    plt.plot(hist['epoch'], hist['val_mean_squared_error'],
+             label='Val Error')
+    plt.ylim([0, 20])
+    plt.legend()
+    plt.show()
+
+
+plot_history(history)
+
+model = build_model()
+
+# The patience parameter is the amount of epochs to check for improvement
+early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=10)
+
+history = model.fit(normed_train_data, train_labels, epochs=EPOCHS,
+                    validation_split=0.2, verbose=0, callbacks=[early_stop, PrintDot()])
+
+plot_history(history)
+
+loss, mae, mse = model.evaluate(normed_test_data, test_labels, verbose=0)
+
+print("Testing set Mean Abs Error: {:5.2f} MPG".format(mae))
